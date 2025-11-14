@@ -2,23 +2,8 @@
 
 A WebRTC-based AI call center application using LiveKit, Gemini Realtime, and FastAPI.
 
-## Project Structure
 
-```
-.
-├── src/
-│   ├── api/           # FastAPI backend routes
-│   ├── agents/        # AI agent implementation
-│   ├── models/        # Data models and schemas
-│   └── utils/         # Utility functions
-├── config/            # Configuration files
-├── data/              # Data files (orders, company info)
-├── instructions/      # Agent instructions
-├── venv/              # Virtual environment (created after setup)
-├── main.py           # Main entry point
-├── requirements.txt  # Python dependencies
-└── .env.example     # Environment variables template
-```
+
 
 ## Setup Instructions
 
