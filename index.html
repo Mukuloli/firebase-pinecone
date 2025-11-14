@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Call Center - Agent Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.0.0/dist/livekit-client.umd.min.js"></script>
+    <style>
+        /* ==================== GLOBAL STYLES ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        /* ==================== CONTAINER ==================== */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        /* ==================== HEADER ==================== */
+        .header {
+            border-bottom: 2px solid #f3f4f6;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #ef4444;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .status.online {
+            background: #10b981;
+        }
+        
+        /* ==================== SECTIONS ==================== */
+        .section {
+            margin: 30px 0;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* ==================== FORMS ==================== */
+        input {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: border 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* ==================== CALL CARDS ==================== */
+        .call-card {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            animation: slideIn 0.5s ease-out;
+            border: 2px solid #fbbf24;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .call-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .call-header h3 {
+            font-size: 18px;
+            color: #92400e;
+        }
+        
+        .call-badge {
+            background: #ef4444;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .call-info {
+            margin: 15px 0;
+            line-height: 1.8;
+            color: #78350f;
+        }
+        
+        .call-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn-accept {
+            flex: 1;
+            background: #10b981;
+        }
+        
+        .btn-accept:hover {
+            background: #059669;
+        }
+        
+        .btn-reject {
+            flex: 1;
+            background: #ef4444;
+        }
+        
+        .btn-reject:hover {
+            background: #dc2626;
+        }
+        
+        /* ==================== VIDEO CONTAINER ==================== */
+        .video-container {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            padding: 10px;
+            min-height: 400px;
+        }
+        
+        .video-wrapper {
+            position: relative;
+            background: #1f2937;
+            border-radius: 8px;
+            overflow: hidden;
+            min-height: 200px;
+        }
+        
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .video-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        /* ==================== CALL CONTROLS ==================== */
+        .controls {
+            display: flex;
+            gap: 15px;
+            padding: 20px;
+            background: #1f2937;
+            justify-content: center;
+        }
+        
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .btn-mute {
+            background: #3b82f6;
+        }
+        
+        .btn-hangup {
+            background: #ef4444;
+        }
+        
+        /* ==================== EMPTY STATE ==================== */
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+        
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+        
+        .empty p {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        
+        /* ==================== STATS ==================== */
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            flex: 1;
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>🎧 AI Call Center - Agent Dashboard</h1>
+            <div class="status" id="status">● Offline</div>
+        </div>
+        
+        <!-- AGENT LOGIN -->
+        <div class="section" id="loginSection">
+            <div class="section-title">👤 Agent Login</div>
+            <input 
+                type="text" 
+                id="agentName" 
+                placeholder="Enter your name (e.g., John Smith)" 
+                value="Agent John"
+            >
+            <br>
+            <button onclick="login()">🚀 Go Online</button>
+        </div>
+        
+        <!-- STATS -->
+        <div class="section hidden" id="statsSection">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="callCount">0</div>
+                    <div class="stat-label">Incoming Calls</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="agentStatus">Online</div>
+                    <div class="stat-label">Your Status</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- INCOMING CALLS -->
+        <div class="section hidden" id="callsSection">
+            <div class="section-title">📞 Incoming Calls</div>
+            <div id="callsList">
+                <div class="empty">
+                    <div class="empty-icon">📞</div>
+                    <p><strong>No incoming calls</strong></p>
+                    <p>Waiting for customer transfers...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ACTIVE CALL -->
+        <div class="section hidden" id="activeSection">
+            <div class="section-title">🔴 Active Call</div>
+            <div class="video-container">
+                <div class="video-grid" id="videoGrid"></div>
+                <div class="controls">
+                    <button class="control-btn btn-mute" onclick="toggleMute()" title="Mute/Unmute">
+                        🎤
+                    </button>
+                    <button class="control-btn btn-hangup" onclick="hangup()" title="End Call">
+                        📞
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ==================== CONFIGURATION ====================
+        const API_URL = 'http://localhost:8000';
+        const WS_URL = 'ws://localhost:8000/ws/agent';
+        
+        // ==================== STATE ====================
+        let ws = null;
+        let agentName = '';
+        let room = null;
+        let currentTransferId = null;
+        let isMuted = false;
+        
+        // ==================== WEBSOCKET CONNECTION ====================
+        function connectWebSocket() {
+            ws = new WebSocket(WS_URL);
+            
+            ws.onopen = () => {
+                console.log('✅ WebSocket connected');
+                document.getElementById('status').textContent = '● Online';
+                document.getElementById('status').classList.add('online');
+                loadPendingCalls();
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('📩 Message received:', data);
+                
+                if (data.type === 'incoming_call') {
+                    playNotificationSound();
+                    addCallCard(data.transfer);
+                } else if (data.type === 'transfer_accepted') {
+                    removeCallCard(data.transfer_id);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('❌ WebSocket error:', error);
+                document.getElementById('status').textContent = '● Connection Error';
+                document.getElementById('status').classList.remove('online');
+            };
+            
+            ws.onclose = () => {
+                console.log('🔌 WebSocket closed. Reconnecting...');
+                document.getElementById('status').textContent = '● Offline';
+                document.getElementById('status').classList.remove('online');
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+        
+        // ==================== AGENT LOGIN ====================
+        function login() {
+            agentName = document.getElementById('agentName').value.trim();
+            
+            if (!agentName) {
+                alert('Please enter your name');
+                return;
+            }
+            
+            console.log(`👤 Agent logged in: ${agentName}`);
+            
+            // Hide login, show dashboard
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('statsSection').classList.remove('hidden');
+            document.getElementById('callsSection').classList.remove('hidden');
+            
+            // Connect WebSocket
+            connectWebSocket();
+        }
+        
+        // ==================== LOAD PENDING CALLS ====================
+        async function loadPendingCalls() {
+            try {
+                const response = await fetch(`${API_URL}/api/transfers`);
+                const data = await response.json();
+                
+                console.log(`📋 Loaded ${data.count} pending transfers`);
+                
+                data.transfers.forEach(transfer => {
+                    addCallCard(transfer);
+                });
+            } catch (error) {
+                console.error('Error loading transfers:', error);
+            }
+        }
+        
+        // ==================== ADD CALL CARD ====================
+        function addCallCard(transfer) {
+            const list = document.getElementById('callsList');
+            
+            // Remove empty state
+            const empty = list.querySelector('.empty');
+            if (empty) empty.remove();
+            
+            // Create card
+            const card = document.createElement('div');
+            card.className = 'call-card';
+            card.id = `call-${transfer.id}`;
+            card.innerHTML = `
+                <div class="call-header">
+                    <h3>📞 Incoming Call</h3>
+                    <span class="call-badge">NEW</span>
+                </div>
+                <div class="call-info">
+                    <strong>Room:</strong> ${transfer.room_name}<br>
+                    <strong>Reason:</strong> ${transfer.reason}<br>
+                    <strong>Time:</strong> ${new Date(transfer.created_at).toLocaleTimeString()}
+                </div>
+                <div class="call-actions">
+                    <button class="btn-accept" onclick="acceptCall('${transfer.id}')">
+                        ✅ Accept Call
+                    </button>
+                    <button class="btn-reject" onclick="rejectCall('${transfer.id}')">
+                        ❌ Reject
+                    </button>
+                </div>
+            `;
+            
+            list.appendChild(card);
+            updateCallCount();
+        }
+        
+        // ==================== REMOVE CALL CARD ====================
+        function removeCallCard(transferId) {
+            const card = document.getElementById(`call-${transferId}`);
+            if (card) {
+                card.remove();
+                updateCallCount();
+            }
+            
+            // Add empty state if no calls
+            const list = document.getElementById('callsList');
+            if (list.children.length === 0) {
+                list.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">📞</div>
+                        <p><strong>No incoming calls</strong></p>
+                        <p>Waiting for customer transfers...</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // ==================== UPDATE CALL COUNT ====================
+        function updateCallCount() {
+            const count = document.querySelectorAll('.call-card').length;
+            document.getElementById('callCount').textContent = count;
+        }
+        
+        // ==================== ACCEPT CALL ====================
+        async function acceptCall(transferId) {
+            console.log(`✅ Accepting call: ${transferId}`);
+            
+            try {
+                const response = await fetch(`${API_URL}/api/accept-transfer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        transfer_id: transferId,
+                        agent_name: agentName
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentTransferId = transferId;
+                    removeCallCard(transferId);
+                    await joinLiveKitRoom(data);
+                } else {
+                    alert(`Failed to accept: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Error accepting call:', error);
+                alert('Failed to accept call. Please try again.');
+            }
+        }
+        
+        // ==================== REJECT CALL ====================
+        function rejectCall(transferId) {
+            console.log(`❌ Rejecting call: ${transferId}`);
+            removeCallCard(transferId);
+        }
+        
+        // ==================== JOIN LIVEKIT ROOM ====================
+        async function joinLiveKitRoom(data) {
+            console.log(`🎥 Joining LiveKit room: ${data.room_name}`);
+            
+            try {
+                room = new LivekitClient.Room();
+                
+                // Track subscribed
+                room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+                    console.log(`📡 Track subscribed: ${track.kind} from ${participant.identity}`);
+                    
+                    if (track.kind === 'video' || track.kind === 'audio') {
+                        const element = track.attach();
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'video-wrapper';
+                        wrapper.id = `track-${track.sid}`;
+                        
+                        const label = document.createElement('div');
+                        label.className = 'video-label';
+                        label.textContent = participant.identity;
+                        
+                        wrapper.appendChild(element);
+                        wrapper.appendChild(label);
+                        document.getElementById('videoGrid').appendChild(wrapper);
+                    }
+                });
+                
+                // Track unsubscribed
+                room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
+                    const wrapper = document.getElementById(`track-${track.sid}`);
+                    if (wrapper) wrapper.remove();
+                });
+                
+                // Disconnected
+                room.on(LivekitClient.RoomEvent.Disconnected, () => {
+                    console.log('📞 Room disconnected');
+                    hangup();
+                });
+                
+                // Connect to room
+                await room.connect(data.livekit_url, data.token);
+                console.log('✅ Connected to room');
+                
+                // Enable camera and microphone
+                await room.localParticipant.enableCameraAndMicrophone();
+                console.log('✅ Camera and microphone enabled');
+                
+                // Show active call UI
+                document.getElementById('callsSection').classList.add('hidden');
+                document.getElementById('statsSection').classList.add('hidden');
+                document.getElementById('activeSection').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('❌ Error joining room:', error);
+                alert('Failed to join call. Please check your permissions.');
+            }
+        }
+        
+        // ==================== TOGGLE MUTE ====================
+        async function toggleMute() {
+            if (!room) return;
+            
+            isMuted = !isMuted;
+            await room.localParticipant.setMicrophoneEnabled(!isMuted);
+            
+            const btn = document.querySelector('.btn-mute');
+            btn.textContent = isMuted ? '🔇' : '🎤';
+            
+            console.log(`🎤 Microphone ${isMuted ? 'muted' : 'unmuted'}`);
+        }
+        
+        // ==================== HANGUP ====================
+        async function hangup() {
+            console.log('📞 Hanging up...');
+            
+            if (room) {
+                await room.disconnect();
+                room = null;
+            }
+            
+            if (currentTransferId) {
+                try {
+                    await fetch(`${API_URL}/api/end-transfer/${currentTransferId}`, {
+                        method: 'POST'
+                    });
+                } catch (error) {
+                    console.error('Error ending transfer:', error);
+                }
+                currentTransferId = null;
+            }
+            
+            // Reset UI
+            document.getElementById('videoGrid').innerHTML = '';
+            document.getElementById('activeSection').classList.add('hidden');
+            document.getElementById('statsSection').classList.remove('hidden');
+            document.getElementById('callsSection').classList.remove('hidden');
+            
+            isMuted = false;
+            document.querySelector('.btn-mute').textContent = '🎤';
+            
+            console.log('✅ Call ended');
+        }
+        
+        // ==================== NOTIFICATION SOUND ====================
+        function playNotificationSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            } catch (error) {
+                console.error('Error playing sound:', error);
+            }
+        }
+    </script>
+</body>
+</html>
