@@ -52,11 +52,34 @@ CONVERSATIONS_DIR.mkdir(exist_ok=True)
 logger.info(f"📁 Conversations will be saved to: {CONVERSATIONS_DIR.absolute()}")
 
 # Initialize Firebase
+# try:
+#     cred = credentials.Certificate("credentials.json")
+#     firebase_admin.initialize_app(cred)
+#     db = firestore.client()
+#     logger.info("✅ Firebase initialized successfully")
+# except Exception as e:
+#     logger.error(f"❌ Firebase initialization failed: {e}")
+#     db = None
+
 try:
-    cred = credentials.Certificate("credentials.json")
-    firebase_admin.initialize_app(cred)
-    db = firestore.client()
-    logger.info("✅ Firebase initialized successfully")
+    # First, try to get credentials from environment variable (for deployment)
+    firebase_creds_json = os.getenv('FIREBASE_CREDS')
+    
+    if firebase_creds_json:
+        # Parse the JSON string from environment variab
+        # le
+        firebase_creds_dict = json.loads(firebase_creds_json)
+        cred = credentials.Certificate(firebase_creds_dict)
+        firebase_admin.initialize_app(cred)
+        db = firestore.client()
+        logger.info("✅ Firebase initialized from environment variable")
+    else:
+        # Fallback to file (for local development)
+        cred = credentials.Certificate("credentials.json")
+        firebase_admin.initialize_app(cred)
+        db = firestore.client()
+        logger.info("✅ Firebase initialized from credentials.json file")
+        
 except Exception as e:
     logger.error(f"❌ Firebase initialization failed: {e}")
     db = None
@@ -866,8 +889,38 @@ def proctored_agent(ctx: JobContext):
     return asyncio.create_task(entrypoint(ctx))
 
 if __name__ == "__main__":
+    import sys
+    
+    # Check if running in LiveKit cloud (no FastAPI server needed)
+    is_livekit_deployment = os.getenv("LIVEKIT_DEPLOYMENT", "false").lower() == "true"
+    
+    # Check command line arguments
+    if len(sys.argv) > 1:
+        command = sys.argv[1]
+        
+        if command == "download-files":
+            # This is called by Dockerfile CMD - just download files and exit
+            logger.info("📥 Downloading model files...")
+            # LiveKit agents framework handles this automatically
+            sys.exit(0)
+            
+        elif command == "start":
+            # This is the actual agent start in deployment
+            logger.info("\n" + "="*60)
+            logger.info("🤖 AI AGENT - LIVEKIT CLOUD DEPLOYMENT")
+            logger.info("="*60)
+            logger.info(f"   Model: Gemini 2.0 Flash Realtime")
+            logger.info(f"   Voice: Puck")
+            logger.info(f"   LiveKit URL: {LIVEKIT_URL}")
+            logger.info("="*60 + "\n")
+            
+            # Start ONLY the AI agent (no FastAPI server)
+            cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+            sys.exit(0)
+    
+    # Local development mode (runs both FastAPI + Agent)
     logger.info("\n" + "="*60)
-    logger.info("🏢 AI CALL CENTER - STARTING ALL SERVICES")
+    logger.info("🏢 AI CALL CENTER - LOCAL DEVELOPMENT MODE")
     logger.info("="*60)
     logger.info(f"   Backend: FastAPI + WebSocket")
     logger.info(f"   AI Agent: Gemini 2.0 Flash Realtime")
